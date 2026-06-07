@@ -37,3 +37,9 @@ logging:
   level:
     org.hibernate.SQL: INFO
     org.flywaydb: INFO
+
+notion:
+  api-base-url: https://api.notion.com/v1
+  version: "2022-06-28"
+  token: ${NOTION_TOKEN:}
+  roadmap-database-id: ${NOTION_ROADMAP_DB_ID:}
