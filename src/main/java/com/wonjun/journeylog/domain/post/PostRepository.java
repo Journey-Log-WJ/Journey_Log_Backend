@@ -11,5 +11,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByNotionPageId(String notionPageId);
 
+    Optional<Post> findByVelogPostId(String velogPostId);
+
     List<Post> findAllByPublishedAtIsNotNullOrderByPublishedAtDesc();
 }
