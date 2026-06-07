@@ -52,6 +52,12 @@ public class Post {
     @Column(name = "published_at")
     private OffsetDateTime publishedAt;
 
+    @Column(name = "velog_post_id", unique = true, length = 64)
+    private String velogPostId;
+
+    @Column(name = "velog_updated_at")
+    private OffsetDateTime velogUpdatedAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
@@ -69,7 +75,8 @@ public class Post {
     @Builder
     private Post(String slug, String title, String content, String excerpt,
                  String notionPageId, OffsetDateTime notionLastEditedAt,
-                 OffsetDateTime publishedAt) {
+                 OffsetDateTime publishedAt,
+                 String velogPostId, OffsetDateTime velogUpdatedAt) {
         this.slug = slug;
         this.title = title;
         this.content = content;
@@ -77,6 +84,8 @@ public class Post {
         this.notionPageId = notionPageId;
         this.notionLastEditedAt = notionLastEditedAt;
         this.publishedAt = publishedAt;
+        this.velogPostId = velogPostId;
+        this.velogUpdatedAt = velogUpdatedAt;
     }
 
     @PrePersist
@@ -97,6 +106,15 @@ public class Post {
         this.content = content;
         this.excerpt = excerpt;
         this.notionLastEditedAt = notionLastEditedAt;
+    }
+
+    public void updateFromVelog(String title, String content, String excerpt,
+                                OffsetDateTime publishedAt, OffsetDateTime velogUpdatedAt) {
+        this.title = title;
+        this.content = content;
+        this.excerpt = excerpt;
+        this.publishedAt = publishedAt;
+        this.velogUpdatedAt = velogUpdatedAt;
     }
 
     public void publish(OffsetDateTime at) {

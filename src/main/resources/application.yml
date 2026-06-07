@@ -43,3 +43,8 @@ notion:
   version: "2022-06-28"
   token: ${NOTION_TOKEN:}
   roadmap-database-id: ${NOTION_ROADMAP_DB_ID:}
+
+velog:
+  api-url: https://v2.velog.io/graphql
+  username: ${VELOG_USERNAME:}
+  page-size: 50
