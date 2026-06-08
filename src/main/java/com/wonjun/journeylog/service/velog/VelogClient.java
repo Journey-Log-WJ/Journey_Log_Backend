@@ -51,6 +51,40 @@ public class VelogClient {
             }
             """;
 
+    private static final String SERIES_LIST_QUERY = """
+            query SeriesList($username: String) {
+              seriesList(username: $username) {
+                id
+                name
+                url_slug
+                description
+                posts_count
+                updated_at
+              }
+            }
+            """;
+
+    private static final String SERIES_QUERY = """
+            query Series($id: ID) {
+              series(id: $id) {
+                id
+                name
+                url_slug
+                description
+                posts_count
+                updated_at
+                series_posts {
+                  index
+                  post {
+                    id
+                    url_slug
+                    title
+                  }
+                }
+              }
+            }
+            """;
+
     private final RestClient restClient;
     private final VelogProperties properties;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -124,6 +158,51 @@ public class VelogClient {
         return toDetail(post);
     }
 
+    public List<VelogSeriesSummary> listSeries() {
+        String username = properties.username();
+        if (username == null || username.isBlank()) {
+            log.warn("Velog username is not configured");
+            return Collections.emptyList();
+        }
+
+        Map<String, Object> body = Map.of(
+                "query", SERIES_LIST_QUERY,
+                "variables", Map.of("username", username)
+        );
+
+        JsonNode response = postGraphql(body);
+        if (response == null) {
+            return Collections.emptyList();
+        }
+        JsonNode seriesList = response.path("data").path("seriesList");
+        if (!seriesList.isArray()) {
+            return Collections.emptyList();
+        }
+
+        List<VelogSeriesSummary> result = new ArrayList<>();
+        for (JsonNode node : seriesList) {
+            result.add(toSeriesSummary(node));
+        }
+        return result;
+    }
+
+    public VelogSeriesDetail readSeries(String id) {
+        Map<String, Object> body = Map.of(
+                "query", SERIES_QUERY,
+                "variables", Map.of("id", id)
+        );
+
+        JsonNode response = postGraphql(body);
+        if (response == null) {
+            return null;
+        }
+        JsonNode series = response.path("data").path("series");
+        if (series.isMissingNode() || series.isNull()) {
+            return null;
+        }
+        return toSeriesDetail(series);
+    }
+
     private VelogPostSummary toSummary(JsonNode node) {
         return new VelogPostSummary(
                 node.path("id").asText(),
@@ -147,6 +226,48 @@ public class VelogClient {
                 node.path("body").asText(null),
                 readTags(node.path("tags"))
         );
+    }
+
+    private VelogSeriesSummary toSeriesSummary(JsonNode node) {
+        return new VelogSeriesSummary(
+                node.path("id").asText(),
+                node.path("name").asText(null),
+                node.path("url_slug").asText(null),
+                safeText(node.path("description")),
+                node.path("posts_count").asInt(0),
+                parseDateTime(node.path("updated_at"))
+        );
+    }
+
+    private VelogSeriesDetail toSeriesDetail(JsonNode node) {
+        JsonNode seriesPostsNode = node.path("series_posts");
+        List<VelogSeriesDetail.VelogSeriesPostItem> items = new ArrayList<>();
+        if (seriesPostsNode.isArray()) {
+            for (JsonNode item : seriesPostsNode) {
+                JsonNode post = item.path("post");
+                items.add(new VelogSeriesDetail.VelogSeriesPostItem(
+                        item.path("index").asInt(0),
+                        post.path("id").asText(null),
+                        post.path("url_slug").asText(null),
+                        post.path("title").asText(null)
+                ));
+            }
+        }
+        return new VelogSeriesDetail(
+                node.path("id").asText(),
+                node.path("name").asText(null),
+                node.path("url_slug").asText(null),
+                safeText(node.path("description")),
+                node.path("posts_count").asInt(0),
+                parseDateTime(node.path("updated_at")),
+                items
+        );
+    }
+
+    private String safeText(JsonNode node) {
+        if (node.isMissingNode() || node.isNull()) return null;
+        String text = node.asText(null);
+        return (text == null || text.isBlank()) ? null : text;
     }
 
     private List<String> readTags(JsonNode tagsNode) {

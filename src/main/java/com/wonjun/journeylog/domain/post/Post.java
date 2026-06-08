@@ -1,14 +1,17 @@
 package com.wonjun.journeylog.domain.post;
 
+import com.wonjun.journeylog.domain.series.Series;
 import com.wonjun.journeylog.domain.tag.Tag;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -63,6 +66,13 @@ public class Post {
 
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "series_id")
+    private Series series;
+
+    @Column(name = "series_index")
+    private Integer seriesIndex;
 
     @ManyToMany
     @JoinTable(
@@ -131,5 +141,15 @@ public class Post {
 
     public void clearTags() {
         this.tags.clear();
+    }
+
+    public void assignToSeries(Series series, int index) {
+        this.series = series;
+        this.seriesIndex = index;
+    }
+
+    public void unassignFromSeries() {
+        this.series = null;
+        this.seriesIndex = null;
     }
 }
