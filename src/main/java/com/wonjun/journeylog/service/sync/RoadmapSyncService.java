@@ -46,6 +46,7 @@ public class RoadmapSyncService {
                     continue;
                 }
                 roadmap.update(
+                        page.slug(),
                         page.title(),
                         page.description(),
                         page.period(),
