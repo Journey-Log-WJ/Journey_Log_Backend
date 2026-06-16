@@ -10,6 +10,8 @@ public record RoadmapResponse(
         String slug,
         String title,
         String description,
+        String period,
+        String story,
         RoadmapStatus status,
         LocalDate targetDate,
         Integer sortOrder
@@ -21,6 +23,8 @@ public record RoadmapResponse(
                 roadmap.getSlug(),
                 roadmap.getTitle(),
                 roadmap.getDescription(),
+                roadmap.getPeriod(),
+                roadmap.getStory(),
                 roadmap.getStatus(),
                 roadmap.getTargetDate(),
                 roadmap.getSortOrder()

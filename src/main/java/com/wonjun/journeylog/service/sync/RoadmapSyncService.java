@@ -48,6 +48,8 @@ public class RoadmapSyncService {
                 roadmap.update(
                         page.title(),
                         page.description(),
+                        page.period(),
+                        page.story(),
                         parseStatus(page.status()),
                         page.targetDate(),
                         page.sortOrder(),
@@ -77,6 +79,8 @@ public class RoadmapSyncService {
                 .slug(page.slug())
                 .title(page.title())
                 .description(page.description())
+                .period(page.period())
+                .story(page.story())
                 .status(parseStatus(page.status()))
                 .targetDate(page.targetDate())
                 .sortOrder(page.sortOrder())
