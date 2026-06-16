@@ -66,6 +66,8 @@ public class NotionClient {
                 readTitle(props.path("Title")),
                 readRichText(props.path("Slug")),
                 readRichText(props.path("Description")),
+                readRichText(props.path("Period")),
+                readRichText(props.path("Story")),
                 readSelect(props.path("Status")),
                 readDate(props.path("TargetDate")),
                 readNumber(props.path("SortOrder"))

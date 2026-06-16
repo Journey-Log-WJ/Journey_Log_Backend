@@ -9,6 +9,8 @@ public record NotionRoadmapPage(
         String title,
         String slug,
         String description,
+        String period,
+        String story,
         String status,
         LocalDate targetDate,
         Integer sortOrder

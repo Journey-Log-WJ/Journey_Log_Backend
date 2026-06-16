@@ -37,6 +37,12 @@ public class Roadmap {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(length = 100)
+    private String period;
+
+    @Column(columnDefinition = "TEXT")
+    private String story;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     private RoadmapStatus status;
@@ -60,13 +66,15 @@ public class Roadmap {
     private OffsetDateTime updatedAt;
 
     @Builder
-    private Roadmap(String slug, String title, String description,
+    private Roadmap(String slug, String title, String description, String period, String story,
                     RoadmapStatus status, LocalDate targetDate,
                     String notionPageId, OffsetDateTime notionLastEditedAt,
                     Integer sortOrder) {
         this.slug = slug;
         this.title = title;
         this.description = description;
+        this.period = period;
+        this.story = story;
         this.status = status;
         this.targetDate = targetDate;
         this.notionPageId = notionPageId;
@@ -86,11 +94,13 @@ public class Roadmap {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void update(String title, String description,
+    public void update(String title, String description, String period, String story,
                        RoadmapStatus status, LocalDate targetDate,
                        Integer sortOrder, OffsetDateTime notionLastEditedAt) {
         this.title = title;
         this.description = description;
+        this.period = period;
+        this.story = story;
         this.status = status;
         this.targetDate = targetDate;
         if (sortOrder != null) {
