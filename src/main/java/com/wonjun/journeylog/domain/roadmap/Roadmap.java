@@ -94,9 +94,10 @@ public class Roadmap {
         this.updatedAt = OffsetDateTime.now();
     }
 
-    public void update(String title, String description, String period, String story,
+    public void update(String slug, String title, String description, String period, String story,
                        RoadmapStatus status, LocalDate targetDate,
                        Integer sortOrder, OffsetDateTime notionLastEditedAt) {
+        this.slug = slug;
         this.title = title;
         this.description = description;
         this.period = period;
