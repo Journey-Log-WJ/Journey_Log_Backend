@@ -5,6 +5,7 @@ import com.wonjun.journeylog.service.github.ContributionsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -15,7 +16,7 @@ public class ContributionsController {
     private final ContributionsService contributionsService;
 
     @GetMapping
-    public ContributionsResponse get() {
-        return contributionsService.getCombined();
+    public ContributionsResponse get(@RequestParam(name = "year", required = false) String year) {
+        return contributionsService.getCombined(year);
     }
 }
