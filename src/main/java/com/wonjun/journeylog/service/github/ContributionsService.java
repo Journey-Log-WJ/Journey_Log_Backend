@@ -18,7 +18,7 @@ public class ContributionsService {
     private final GithubProperties properties;
     private final GithubContributionsClient client;
 
-    public ContributionsResponse getCombined() {
+    public ContributionsResponse getCombined(String year) {
         List<String> usernames = properties.contributions().usernames();
         if (usernames == null || usernames.isEmpty()) {
             return new ContributionsResponse(0, List.of());
@@ -26,7 +26,7 @@ public class ContributionsService {
 
         Map<LocalDate, Integer> merged = new TreeMap<>();
         for (String username : usernames) {
-            for (GithubContributionsClient.DayCount day : client.fetch(username)) {
+            for (GithubContributionsClient.DayCount day : client.fetch(username, year)) {
                 merged.merge(day.date(), day.count(), Integer::sum);
             }
         }

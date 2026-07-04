@@ -26,14 +26,15 @@ public class GithubContributionsClient {
                 .build();
     }
 
-    public List<DayCount> fetch(String username) {
+    public List<DayCount> fetch(String username, String year) {
         if (username == null || username.isBlank()) {
             return Collections.emptyList();
         }
+        String y = (year == null || year.isBlank()) ? "last" : year;
 
         try {
             JsonNode response = restClient.get()
-                    .uri("/{username}?y=last", username)
+                    .uri("/{username}?y={year}", username, y)
                     .retrieve()
                     .body(JsonNode.class);
 
@@ -52,7 +53,7 @@ public class GithubContributionsClient {
             }
             return days;
         } catch (Exception e) {
-            log.warn("Failed to fetch contributions for {}: {}", username, e.getMessage());
+            log.warn("Failed to fetch contributions for {} (year={}): {}", username, y, e.getMessage());
             return Collections.emptyList();
         }
     }
