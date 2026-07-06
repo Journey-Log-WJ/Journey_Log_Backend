@@ -13,6 +13,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     Optional<Post> findByVelogPostId(String velogPostId);
 
+    List<Post> findAllByVelogPostIdIsNotNull();
+
     List<Post> findAllByPublishedAtIsNotNullOrderByPublishedAtDesc();
 
     List<Post> findAllBySeriesIdOrderBySeriesIndexAsc(Long seriesId);
