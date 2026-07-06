@@ -12,8 +12,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -31,6 +33,9 @@ public class PostSyncService {
         int created = 0;
         int updated = 0;
         int skipped = 0;
+        int deleted = 0;
+
+        Set<String> liveVelogIds = new HashSet<>();
 
         for (VelogPostSummary summary : summaries) {
             if (!isValid(summary)) {
@@ -39,6 +44,7 @@ public class PostSyncService {
                 continue;
             }
 
+            liveVelogIds.add(summary.id());
             Optional<Post> existing = postRepository.findByVelogPostId(summary.id());
 
             if (existing.isEmpty()) {
@@ -83,8 +89,23 @@ public class PostSyncService {
             }
         }
 
-        log.info("Velog sync done — created={}, updated={}, skipped={}", created, updated, skipped);
-        return new PostSyncResult(created, updated, skipped);
+        if (liveVelogIds.isEmpty()) {
+            log.warn("Velog returned zero posts — skipping tombstone cleanup as a safety measure");
+        } else {
+            List<Post> tracked = postRepository.findAllByVelogPostIdIsNotNull();
+            for (Post post : tracked) {
+                if (!liveVelogIds.contains(post.getVelogPostId())) {
+                    log.info("Removing post no longer present in Velog: slug={} velogId={}",
+                            post.getSlug(), post.getVelogPostId());
+                    postRepository.delete(post);
+                    deleted++;
+                }
+            }
+        }
+
+        log.info("Velog sync done — created={}, updated={}, skipped={}, deleted={}",
+                created, updated, skipped, deleted);
+        return new PostSyncResult(created, updated, skipped, deleted);
     }
 
     private boolean isValid(VelogPostSummary summary) {
