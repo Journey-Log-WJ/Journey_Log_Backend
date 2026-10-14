@@ -38,20 +38,25 @@ public class NotionClient {
             return Collections.emptyList();
         }
 
-        JsonNode response = restClient.post()
-                .uri("/databases/{id}/query", databaseId)
-                .body("{}")
-                .retrieve()
-                .body(JsonNode.class);
-
-        if (response == null || !response.has("results")) {
-            return Collections.emptyList();
-        }
-
+        // 노션은 한 번에 최대 100개씩 주므로 next_cursor 로 끝까지 읽음 (동기화 삭제가 2페이지 항목을 지우지 않도록)
         List<NotionRoadmapPage> pages = new ArrayList<>();
-        for (JsonNode result : response.get("results")) {
-            pages.add(toPage(result));
-        }
+        String cursor = null;
+        do {
+            String body = cursor == null ? "{}" : "{\"start_cursor\":\"" + cursor + "\"}";
+            JsonNode response = restClient.post()
+                    .uri("/databases/{id}/query", databaseId)
+                    .body(body)
+                    .retrieve()
+                    .body(JsonNode.class);
+
+            if (response == null || !response.has("results")) {
+                break;
+            }
+            for (JsonNode result : response.get("results")) {
+                pages.add(toPage(result));
+            }
+            cursor = response.path("has_more").asBoolean(false) ? response.path("next_cursor").asText(null) : null;
+        } while (cursor != null);
         return pages;
     }
 

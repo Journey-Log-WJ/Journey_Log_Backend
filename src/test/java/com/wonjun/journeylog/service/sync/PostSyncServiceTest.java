@@ -77,7 +77,7 @@ class PostSyncServiceTest {
         assertThat(saved.getVelogPostId()).isEqualTo("velog-1");
         assertThat(saved.getVelogUpdatedAt()).isEqualTo(now);
         assertThat(saved.getTags()).extracting(Tag::getName).containsExactlyInAnyOrder("Spring", "Java");
-        assertThat(result).isEqualTo(new PostSyncResult(1, 0, 0));
+        assertThat(result).isEqualTo(new PostSyncResult(1, 0, 0, 0));
     }
 
     @Test
@@ -104,7 +104,7 @@ class PostSyncServiceTest {
         assertThat(existing.getContent()).isEqualTo("새 본문");
         assertThat(existing.getVelogUpdatedAt()).isEqualTo(newTime);
         verify(postRepository, never()).save(any());
-        assertThat(result).isEqualTo(new PostSyncResult(0, 1, 0));
+        assertThat(result).isEqualTo(new PostSyncResult(0, 1, 0, 0));
     }
 
     @Test
@@ -125,7 +125,7 @@ class PostSyncServiceTest {
 
         verify(velogClient, never()).readPost(anyString());
         verify(postRepository, never()).save(any());
-        assertThat(result).isEqualTo(new PostSyncResult(0, 0, 0));
+        assertThat(result).isEqualTo(new PostSyncResult(0, 0, 0, 0));
     }
 
     @Test
@@ -140,6 +140,6 @@ class PostSyncServiceTest {
         PostSyncResult result = syncService.syncFromVelog();
 
         verify(postRepository, never()).save(any());
-        assertThat(result).isEqualTo(new PostSyncResult(0, 0, 1));
+        assertThat(result).isEqualTo(new PostSyncResult(0, 0, 1, 0));
     }
 }

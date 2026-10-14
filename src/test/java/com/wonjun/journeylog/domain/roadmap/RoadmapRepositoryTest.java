@@ -20,7 +20,7 @@ class RoadmapRepositoryTest extends AbstractRepositoryTest {
         Roadmap saved = roadmapRepository.save(Roadmap.builder()
                 .slug("ship-mvp")
                 .title("MVP 배포")
-                .status(RoadmapStatus.PLANNING)
+                .status(RoadmapStatus.PLANNED)
                 .build());
 
         assertThat(saved.getId()).isNotNull();
@@ -34,14 +34,14 @@ class RoadmapRepositoryTest extends AbstractRepositoryTest {
         roadmapRepository.save(Roadmap.builder()
                 .slug("write-docs")
                 .title("문서화")
-                .status(RoadmapStatus.DOING)
+                .status(RoadmapStatus.IN_PROGRESS)
                 .build());
 
         Optional<Roadmap> found = roadmapRepository.findBySlug("write-docs");
         Optional<Roadmap> notFound = roadmapRepository.findBySlug("missing");
 
         assertThat(found).isPresent();
-        assertThat(found.get().getStatus()).isEqualTo(RoadmapStatus.DOING);
+        assertThat(found.get().getStatus()).isEqualTo(RoadmapStatus.IN_PROGRESS);
         assertThat(notFound).isEmpty();
     }
 
@@ -50,7 +50,7 @@ class RoadmapRepositoryTest extends AbstractRepositoryTest {
         roadmapRepository.save(Roadmap.builder()
                 .slug("from-notion")
                 .title("From Notion")
-                .status(RoadmapStatus.PLANNING)
+                .status(RoadmapStatus.PLANNED)
                 .notionPageId("page-xyz")
                 .build());
 
@@ -63,13 +63,13 @@ class RoadmapRepositoryTest extends AbstractRepositoryTest {
     @Test
     void sortOrder_asc_targetDate_asc_순으로_정렬된다() {
         roadmapRepository.save(Roadmap.builder()
-                .slug("a").title("A").status(RoadmapStatus.PLANNING)
+                .slug("a").title("A").status(RoadmapStatus.PLANNED)
                 .sortOrder(2).targetDate(LocalDate.of(2026, 7, 1)).build());
         roadmapRepository.save(Roadmap.builder()
-                .slug("b").title("B").status(RoadmapStatus.DOING)
+                .slug("b").title("B").status(RoadmapStatus.IN_PROGRESS)
                 .sortOrder(1).targetDate(LocalDate.of(2026, 8, 1)).build());
         roadmapRepository.save(Roadmap.builder()
-                .slug("c").title("C").status(RoadmapStatus.PLANNING)
+                .slug("c").title("C").status(RoadmapStatus.PLANNED)
                 .sortOrder(1).targetDate(LocalDate.of(2026, 7, 1)).build());
 
         List<Roadmap> all = roadmapRepository.findAllByOrderBySortOrderAscTargetDateAsc();
