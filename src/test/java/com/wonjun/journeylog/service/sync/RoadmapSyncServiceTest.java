@@ -5,7 +5,6 @@ import com.wonjun.journeylog.domain.roadmap.RoadmapRepository;
 import com.wonjun.journeylog.domain.roadmap.RoadmapStatus;
 import com.wonjun.journeylog.service.notion.NotionClient;
 import com.wonjun.journeylog.service.notion.NotionRoadmapPage;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,7 +12,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -36,108 +34,109 @@ class RoadmapSyncServiceTest {
     @InjectMocks
     private RoadmapSyncService syncService;
 
-    private NotionRoadmapPage validPage(String pageId, String slug, OffsetDateTime lastEdited) {
-        return new NotionRoadmapPage(
-                pageId,
-                lastEdited,
-                "MVP 배포",
-                slug,
-                "1차 배포",
-                "planning",
-                LocalDate.of(2026, 8, 1),
-                1
-        );
+    private NotionRoadmapPage page(String pageId, String title, String slug, String status, OffsetDateTime lastEdited, int sortOrder) {
+        return new NotionRoadmapPage(pageId, lastEdited, title, slug, "설명", "2026.03", null, status, null, sortOrder);
     }
 
-    @BeforeEach
-    void setUp() {
-        given(notionClient.queryRoadmapDatabase()).willReturn(List.of());
+    private Roadmap saved(String pageId, String slug, OffsetDateTime lastEdited) {
+        return Roadmap.builder()
+                .slug(slug)
+                .title("(이전 제목)")
+                .status(RoadmapStatus.LEARNED)
+                .notionPageId(pageId)
+                .notionLastEditedAt(lastEdited)
+                .build();
     }
 
     @Test
     void 새_노션_페이지는_create로_저장된다() {
         OffsetDateTime now = OffsetDateTime.now();
-        NotionRoadmapPage page = validPage("page-1", "ship-mvp", now);
-        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page));
+        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page("page-1", "UXN 합류", "uxn-join", "in_progress", now, 1)));
         given(roadmapRepository.findByNotionPageId("page-1")).willReturn(Optional.empty());
 
         RoadmapSyncResult result = syncService.syncFromNotion();
 
         ArgumentCaptor<Roadmap> captor = ArgumentCaptor.forClass(Roadmap.class);
         verify(roadmapRepository).save(captor.capture());
-        Roadmap saved = captor.getValue();
-
-        assertThat(saved.getSlug()).isEqualTo("ship-mvp");
-        assertThat(saved.getTitle()).isEqualTo("MVP 배포");
-        assertThat(saved.getStatus()).isEqualTo(RoadmapStatus.PLANNING);
-        assertThat(saved.getNotionPageId()).isEqualTo("page-1");
-        assertThat(saved.getNotionLastEditedAt()).isEqualTo(now);
-        assertThat(result).isEqualTo(new RoadmapSyncResult(1, 0, 0));
+        Roadmap created = captor.getValue();
+        assertThat(created.getSlug()).isEqualTo("uxn-join");
+        assertThat(created.getTitle()).isEqualTo("UXN 합류");
+        assertThat(created.getStatus()).isEqualTo(RoadmapStatus.IN_PROGRESS);
+        assertThat(created.getNotionPageId()).isEqualTo("page-1");
+        assertThat(created.getNotionLastEditedAt()).isEqualTo(now);
+        assertThat(result).isEqualTo(new RoadmapSyncResult(1, 0, 0, 0));
     }
 
     @Test
     void 노션이_더_최신이면_기존_엔티티가_update된다() {
-        OffsetDateTime oldTime = OffsetDateTime.now().minusHours(1);
         OffsetDateTime newTime = OffsetDateTime.now();
-
-        Roadmap existing = Roadmap.builder()
-                .slug("ship-mvp")
-                .title("(이전 제목)")
-                .status(RoadmapStatus.PLANNING)
-                .notionPageId("page-1")
-                .notionLastEditedAt(oldTime)
-                .build();
-
-        NotionRoadmapPage page = new NotionRoadmapPage(
-                "page-1", newTime, "MVP 배포 (수정)", "ship-mvp",
-                "수정됨", "doing", LocalDate.of(2026, 9, 1), 2);
-
-        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page));
+        Roadmap existing = saved("page-1", "sqld-pass", newTime.minusHours(1));
+        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page("page-1", "SQLD 취득", "sqld-pass", "succeeded", newTime, 2)));
         given(roadmapRepository.findByNotionPageId("page-1")).willReturn(Optional.of(existing));
+        given(roadmapRepository.findAllByNotionPageIdIsNotNull()).willReturn(List.of(existing));
 
         RoadmapSyncResult result = syncService.syncFromNotion();
 
-        assertThat(existing.getTitle()).isEqualTo("MVP 배포 (수정)");
-        assertThat(existing.getStatus()).isEqualTo(RoadmapStatus.DOING);
+        assertThat(existing.getTitle()).isEqualTo("SQLD 취득");
+        assertThat(existing.getStatus()).isEqualTo(RoadmapStatus.SUCCEEDED);
         assertThat(existing.getSortOrder()).isEqualTo(2);
         assertThat(existing.getNotionLastEditedAt()).isEqualTo(newTime);
         verify(roadmapRepository, never()).save(any());
-        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 1, 0));
+        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 1, 0, 0));
     }
 
     @Test
     void 노션_수정시각이_같거나_이전이면_skip된다() {
         OffsetDateTime savedTime = OffsetDateTime.now();
-
-        Roadmap existing = Roadmap.builder()
-                .slug("ship-mvp").title("MVP")
-                .status(RoadmapStatus.PLANNING)
-                .notionPageId("page-1")
-                .notionLastEditedAt(savedTime)
-                .build();
-
-        NotionRoadmapPage page = validPage("page-1", "ship-mvp", savedTime);
-
-        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page));
+        Roadmap existing = saved("page-1", "sqld-pass", savedTime);
+        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page("page-1", "SQLD 취득", "sqld-pass", "succeeded", savedTime, 1)));
         given(roadmapRepository.findByNotionPageId("page-1")).willReturn(Optional.of(existing));
+        given(roadmapRepository.findAllByNotionPageIdIsNotNull()).willReturn(List.of(existing));
 
         RoadmapSyncResult result = syncService.syncFromNotion();
 
         verify(roadmapRepository, never()).save(any());
-        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 0, 0));
+        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 0, 0, 0));
     }
 
     @Test
-    void 필수_필드가_없으면_skip되고_skipped_카운트가_증가한다() {
-        NotionRoadmapPage missingSlug = new NotionRoadmapPage(
-                "page-1", OffsetDateTime.now(),
-                "title", null, "desc", "planning", null, 1);
-
-        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(missingSlug));
+    void 필수_필드가_없으면_skip되고_삭제_대상도_아니다() {
+        OffsetDateTime now = OffsetDateTime.now();
+        Roadmap existing = saved("page-1", "sqld-pass", now);
+        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page("page-1", "제목", null, "succeeded", now, 1)));
+        given(roadmapRepository.findAllByNotionPageIdIsNotNull()).willReturn(List.of(existing));
 
         RoadmapSyncResult result = syncService.syncFromNotion();
 
         verify(roadmapRepository, never()).save(any());
-        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 0, 1));
+        verify(roadmapRepository, never()).delete(any());
+        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 0, 1, 0));
+    }
+
+    @Test
+    void 노션에서_지운_항목은_DB에서도_삭제된다() {
+        OffsetDateTime now = OffsetDateTime.now();
+        Roadmap kept = saved("page-1", "uxn-join", now);
+        Roadmap removed = saved("page-2", "skku-master", now);
+        given(notionClient.queryRoadmapDatabase()).willReturn(List.of(page("page-1", "UXN 합류", "uxn-join", "in_progress", now, 1)));
+        given(roadmapRepository.findByNotionPageId("page-1")).willReturn(Optional.of(kept));
+        given(roadmapRepository.findAllByNotionPageIdIsNotNull()).willReturn(List.of(kept, removed));
+
+        RoadmapSyncResult result = syncService.syncFromNotion();
+
+        verify(roadmapRepository).delete(removed);
+        verify(roadmapRepository, never()).delete(kept);
+        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 0, 0, 1));
+    }
+
+    @Test
+    void 노션이_0건이면_안전장치로_아무것도_삭제하지_않는다() {
+        given(notionClient.queryRoadmapDatabase()).willReturn(List.of());
+
+        RoadmapSyncResult result = syncService.syncFromNotion();
+
+        verify(roadmapRepository, never()).findAllByNotionPageIdIsNotNull();
+        verify(roadmapRepository, never()).delete(any());
+        assertThat(result).isEqualTo(new RoadmapSyncResult(0, 0, 0, 0));
     }
 }

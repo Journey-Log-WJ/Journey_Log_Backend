@@ -12,4 +12,6 @@ public interface RoadmapRepository extends JpaRepository<Roadmap, Long> {
     Optional<Roadmap> findByNotionPageId(String notionPageId);
 
     List<Roadmap> findAllByOrderBySortOrderAscTargetDateAsc();
+
+    List<Roadmap> findAllByNotionPageIdIsNotNull();
 }

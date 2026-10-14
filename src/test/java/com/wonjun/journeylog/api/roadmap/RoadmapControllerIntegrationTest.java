@@ -31,13 +31,13 @@ class RoadmapControllerIntegrationTest extends AbstractApiIntegrationTest {
     @Test
     void GET_roadmaps는_sortOrder_targetDate_순으로_반환한다() throws Exception {
         roadmapRepository.save(Roadmap.builder()
-                .slug("later").title("Later").status(RoadmapStatus.PLANNING)
+                .slug("later").title("Later").status(RoadmapStatus.PLANNED)
                 .sortOrder(2).targetDate(LocalDate.of(2026, 9, 1)).build());
         roadmapRepository.save(Roadmap.builder()
-                .slug("now").title("Now doing").status(RoadmapStatus.DOING)
+                .slug("now").title("Now doing").status(RoadmapStatus.IN_PROGRESS)
                 .sortOrder(1).targetDate(LocalDate.of(2026, 7, 1)).build());
         roadmapRepository.save(Roadmap.builder()
-                .slug("soon").title("Soon").status(RoadmapStatus.PLANNING)
+                .slug("soon").title("Soon").status(RoadmapStatus.PLANNED)
                 .sortOrder(1).targetDate(LocalDate.of(2026, 8, 1)).build());
 
         mockMvc.perform(get("/api/roadmaps"))

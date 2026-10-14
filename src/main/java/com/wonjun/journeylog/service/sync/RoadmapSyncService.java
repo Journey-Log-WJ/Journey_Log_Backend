@@ -10,8 +10,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -28,8 +30,13 @@ public class RoadmapSyncService {
         int created = 0;
         int updated = 0;
         int skipped = 0;
+        int deleted = 0;
+
+        // 노션에 남아 있는 페이지 id (필수값이 빠져 skip 된 페이지도 포함 - 삭제 대상 아님)
+        Set<String> liveNotionIds = new HashSet<>();
 
         for (NotionRoadmapPage page : pages) {
+            liveNotionIds.add(page.notionPageId());
             if (!isValid(page)) {
                 log.warn("Skipping invalid Notion page {} (missing required fields)", page.notionPageId());
                 skipped++;
@@ -60,8 +67,22 @@ public class RoadmapSyncService {
             }
         }
 
-        log.info("Notion sync done — created={}, updated={}, skipped={}", created, updated, skipped);
-        return new RoadmapSyncResult(created, updated, skipped);
+        // 노션에서 지운(휴지통) 항목은 DB 에서도 삭제 - 글(Velog) 동기화와 같은 방식
+        if (liveNotionIds.isEmpty()) {
+            log.warn("Notion returned zero roadmap pages — skipping tombstone cleanup as a safety measure");
+        } else {
+            for (Roadmap roadmap : roadmapRepository.findAllByNotionPageIdIsNotNull()) {
+                if (!liveNotionIds.contains(roadmap.getNotionPageId())) {
+                    log.info("Removing roadmap no longer present in Notion: slug={} notionPageId={}",
+                            roadmap.getSlug(), roadmap.getNotionPageId());
+                    roadmapRepository.delete(roadmap);
+                    deleted++;
+                }
+            }
+        }
+
+        log.info("Notion sync done — created={}, updated={}, skipped={}, deleted={}", created, updated, skipped, deleted);
+        return new RoadmapSyncResult(created, updated, skipped, deleted);
     }
 
     private boolean isValid(NotionRoadmapPage page) {
